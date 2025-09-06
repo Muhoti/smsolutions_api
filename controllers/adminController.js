@@ -446,11 +446,123 @@ const getSystemStats = async (req, res) => {
   }
 };
 
+// @desc    Create new project
+// @route   POST /api/admin/projects
+// @access  Private (Admin)
+const createProject = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      category,
+      techStack,
+      liveDemo,
+      github,
+      playStore,
+      appStore,
+      featured = false,
+      status = 'completed',
+      clientName,
+      projectDuration,
+      projectBudget
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, and category are required'
+      });
+    }
+
+    // Create project
+    const project = await Project.create({
+      title,
+      description,
+      category,
+      techStack: techStack ? techStack.split(',').map(tech => tech.trim()) : [],
+      liveDemo,
+      github,
+      playStore,
+      appStore,
+      featured,
+      status,
+      clientName,
+      projectDuration,
+      projectBudget
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Project created successfully',
+      data: project
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating project',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Create new testimonial
+// @route   POST /api/admin/testimonials
+// @access  Private (Admin)
+const createTestimonial = async (req, res) => {
+  try {
+    const {
+      clientName,
+      position,
+      company,
+      content,
+      rating = 5,
+      project,
+      featured = false,
+      verified = true
+    } = req.body;
+
+    // Validate required fields
+    if (!clientName || !position || !company || !content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client name, position, company, and content are required'
+      });
+    }
+
+    // Create testimonial
+    const testimonial = await Testimonial.create({
+      clientName,
+      position,
+      company,
+      content,
+      rating,
+      project,
+      featured,
+      verified
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Testimonial created successfully',
+      data: testimonial
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating testimonial',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboard,
   getContacts,
   updateContact,
   getProjects,
+  createProject,
   getTestimonials,
+  createTestimonial,
   getSystemStats
 };

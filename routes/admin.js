@@ -5,7 +5,9 @@ const {
   getContacts,
   updateContact,
   getProjects,
+  createProject,
   getTestimonials,
+  createTestimonial,
   getSystemStats
 } = require('../controllers/adminController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
@@ -33,10 +35,20 @@ router.put('/contacts/:id', updateContact);
 // @access  Private (Admin)
 router.get('/projects', getProjects);
 
+// @route   POST /api/admin/projects
+// @desc    Create new project
+// @access  Private (Admin)
+router.post('/projects', createProject);
+
 // @route   GET /api/admin/testimonials
 // @desc    Get all testimonials for admin
 // @access  Private (Admin)
 router.get('/testimonials', getTestimonials);
+
+// @route   POST /api/admin/testimonials
+// @desc    Create new testimonial
+// @access  Private (Admin)
+router.post('/testimonials', createTestimonial);
 
 // @route   GET /api/admin/stats
 // @desc    Get system statistics
