@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+// const rateLimit = require('express-rate-limit'); // Disabled for development
 require('dotenv').config();
 const { connectDB } = require('./config/database');
 
@@ -18,12 +18,16 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Rate limiting - Disabled for development
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: process.env.NODE_ENV === 'production' ? 100 : 1000, // More lenient for development
+//   message: {
+//     error: 'Too many requests from this IP, please try again later.',
+//     retryAfter: Math.round(15 * 60 * 1000 / 1000) // seconds
+//   }
+// });
+// app.use(limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

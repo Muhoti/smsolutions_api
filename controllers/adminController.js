@@ -530,16 +530,16 @@ const createTestimonial = async (req, res) => {
       });
     }
 
-    // Create testimonial
+    // Create testimonial - map frontend fields to model fields
     const testimonial = await Testimonial.create({
-      clientName,
-      position,
-      company,
-      content,
-      rating,
-      project,
-      featured,
-      verified
+      name: clientName,        // Map clientName to name
+      title: position,         // Map position to title
+      company: company,
+      review: content,         // Map content to review
+      rating: rating,
+      project: project,
+      featured: featured,
+      verified: verified
     });
 
     res.status(201).json({
