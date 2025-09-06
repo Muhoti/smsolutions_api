@@ -1,28 +1,36 @@
-const Testimonial = require('../models/Testimonial');
+const { Testimonial, Project } = require('../models/associations');
+const { Op } = require('sequelize');
 
-// @desc    Get all testimonials
+// @desc    Get all public testimonials
 // @route   GET /api/testimonials
 // @access  Public
 const getAllTestimonials = async (req, res) => {
   try {
     const { featured, limit = 10, page = 1 } = req.query;
     
-    const filter = { isPublic: true };
-    if (featured === 'true') filter.featured = true;
+    const where = { isPublic: true };
+    if (featured === 'true') where.featured = true;
     
-    const testimonials = await Testimonial.find(filter)
-      .select('-__v')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const offset = (page - 1) * limit;
     
-    const total = await Testimonial.countDocuments(filter);
+    const { count, rows: testimonials } = await Testimonial.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      include: [{
+        model: Project,
+        as: 'project',
+        attributes: ['id', 'title', 'category']
+      }],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
       count: testimonials.length,
-      total,
-      pages: Math.ceil(total / limit),
+      total: count,
+      pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       data: testimonials
     });
@@ -40,13 +48,20 @@ const getAllTestimonials = async (req, res) => {
 // @access  Public
 const getFeaturedTestimonials = async (req, res) => {
   try {
-    const testimonials = await Testimonial.find({ 
-      isPublic: true, 
-      featured: true 
-    })
-    .select('-__v')
-    .sort({ createdAt: -1 })
-    .limit(6);
+    const testimonials = await Testimonial.findAll({
+      where: { 
+        isPublic: true, 
+        featured: true 
+      },
+      limit: 6,
+      order: [['createdAt', 'DESC']],
+      include: [{
+        model: Project,
+        as: 'project',
+        attributes: ['id', 'title', 'category']
+      }],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
@@ -67,9 +82,20 @@ const getFeaturedTestimonials = async (req, res) => {
 // @access  Public
 const getTestimonialById = async (req, res) => {
   try {
-    const testimonial = await Testimonial.findById(req.params.id).select('-__v');
+    const testimonial = await Testimonial.findOne({
+      where: { 
+        id: req.params.id,
+        isPublic: true 
+      },
+      include: [{
+        model: Project,
+        as: 'project',
+        attributes: ['id', 'title', 'category', 'description']
+      }],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
-    if (!testimonial || !testimonial.isPublic) {
+    if (!testimonial) {
       return res.status(404).json({
         success: false,
         message: 'Testimonial not found'
@@ -94,8 +120,7 @@ const getTestimonialById = async (req, res) => {
 // @access  Private (Admin)
 const createTestimonial = async (req, res) => {
   try {
-    const testimonial = new Testimonial(req.body);
-    await testimonial.save();
+    const testimonial = await Testimonial.create(req.body);
     
     res.status(201).json({
       success: true,
@@ -116,11 +141,7 @@ const createTestimonial = async (req, res) => {
 // @access  Private (Admin)
 const updateTestimonial = async (req, res) => {
   try {
-    const testimonial = await Testimonial.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).select('-__v');
+    const testimonial = await Testimonial.findByPk(req.params.id);
     
     if (!testimonial) {
       return res.status(404).json({
@@ -128,6 +149,8 @@ const updateTestimonial = async (req, res) => {
         message: 'Testimonial not found'
       });
     }
+    
+    await testimonial.update(req.body);
     
     res.json({
       success: true,
@@ -148,7 +171,7 @@ const updateTestimonial = async (req, res) => {
 // @access  Private (Admin)
 const deleteTestimonial = async (req, res) => {
   try {
-    const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
+    const testimonial = await Testimonial.findByPk(req.params.id);
     
     if (!testimonial) {
       return res.status(404).json({
@@ -156,6 +179,8 @@ const deleteTestimonial = async (req, res) => {
         message: 'Testimonial not found'
       });
     }
+    
+    await testimonial.destroy();
     
     res.json({
       success: true,
@@ -170,28 +195,94 @@ const deleteTestimonial = async (req, res) => {
   }
 };
 
+// @desc    Toggle testimonial featured status
+// @route   PUT /api/testimonials/:id/featured
+// @access  Private (Admin)
+const toggleFeatured = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findByPk(req.params.id);
+    
+    if (!testimonial) {
+      return res.status(404).json({
+        success: false,
+        message: 'Testimonial not found'
+      });
+    }
+    
+    await testimonial.update({ featured: !testimonial.featured });
+    
+    res.json({
+      success: true,
+      message: `Testimonial ${testimonial.featured ? 'featured' : 'unfeatured'} successfully`,
+      data: testimonial
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error toggling featured status',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Verify testimonial
+// @route   PUT /api/testimonials/:id/verify
+// @access  Private (Admin)
+const verifyTestimonial = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findByPk(req.params.id);
+    
+    if (!testimonial) {
+      return res.status(404).json({
+        success: false,
+        message: 'Testimonial not found'
+      });
+    }
+    
+    await testimonial.verify();
+    
+    res.json({
+      success: true,
+      message: 'Testimonial verified successfully',
+      data: testimonial
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error verifying testimonial',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get testimonial statistics
 // @route   GET /api/testimonials/stats
 // @access  Private (Admin)
 const getTestimonialStats = async (req, res) => {
   try {
-    const total = await Testimonial.countDocuments();
-    const public = await Testimonial.countDocuments({ isPublic: true });
-    const featured = await Testimonial.countDocuments({ featured: true });
-    const recent = await Testimonial.countDocuments({
-      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-    });
+    const total = await Testimonial.count();
+    const public = await Testimonial.count({ where: { isPublic: true } });
+    const featured = await Testimonial.count({ where: { featured: true } });
+    const verified = await Testimonial.count({ where: { verified: true } });
     
     // Get average rating
-    const ratingStats = await Testimonial.aggregate([
-      {
-        $group: {
-          _id: null,
-          averageRating: { $avg: '$rating' },
-          totalRatings: { $sum: 1 }
-        }
-      }
-    ]);
+    const avgRating = await Testimonial.findOne({
+      attributes: [
+        [Testimonial.sequelize.fn('AVG', Testimonial.sequelize.col('rating')), 'average']
+      ],
+      raw: true
+    });
+    
+    // Get rating distribution
+    const ratingStats = await Testimonial.findAll({
+      attributes: [
+        'rating',
+        [Testimonial.sequelize.fn('COUNT', Testimonial.sequelize.col('id')), 'count']
+      ],
+      group: ['rating'],
+      order: [['rating', 'ASC']],
+      raw: true
+    });
     
     res.json({
       success: true,
@@ -199,9 +290,9 @@ const getTestimonialStats = async (req, res) => {
         total,
         public,
         featured,
-        recent,
-        averageRating: ratingStats[0]?.averageRating || 0,
-        totalRatings: ratingStats[0]?.totalRatings || 0
+        verified,
+        averageRating: parseFloat(avgRating.average || 0).toFixed(1),
+        ratingDistribution: ratingStats
       }
     });
   } catch (error) {
@@ -220,5 +311,7 @@ module.exports = {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  toggleFeatured,
+  verifyTestimonial,
   getTestimonialStats
 };

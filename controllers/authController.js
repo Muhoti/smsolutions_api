@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models/associations');
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -10,7 +10,7 @@ const register = async (req, res) => {
     const { name, email, password, role = 'admin' } = req.body;
     
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -23,19 +23,17 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     
     // Create user
-    const user = new User({
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role
     });
     
-    await user.save();
-    
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback-secret-key',
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.TOKEN_KEY || 'fallback-secret-key',
       { expiresIn: '7d' }
     );
     
@@ -43,12 +41,7 @@ const register = async (req, res) => {
       success: true,
       message: 'User registered successfully',
       data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
+        user: user.getSafeData(),
         token
       }
     });
@@ -69,7 +62,7 @@ const login = async (req, res) => {
     const { email, password } = req.body;
     
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -86,10 +79,13 @@ const login = async (req, res) => {
       });
     }
     
+    // Update last login
+    await user.updateLastLogin();
+    
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback-secret-key',
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.TOKEN_KEY || 'fallback-secret-key',
       { expiresIn: '7d' }
     );
     
@@ -97,12 +93,7 @@ const login = async (req, res) => {
       success: true,
       message: 'Login successful',
       data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
+        user: user.getSafeData(),
         token
       }
     });
@@ -120,7 +111,7 @@ const login = async (req, res) => {
 // @access  Private
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password -__v');
+    const user = await User.findByPk(req.user.userId);
     
     if (!user) {
       return res.status(404).json({
@@ -131,7 +122,7 @@ const getProfile = async (req, res) => {
     
     res.json({
       success: true,
-      data: user
+      data: user.getSafeData()
     });
   } catch (error) {
     res.status(500).json({
@@ -147,15 +138,10 @@ const getProfile = async (req, res) => {
 // @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, bio, phone, location, website, linkedin, twitter, github } = req.body;
     const userId = req.user.userId;
     
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, email },
-      { new: true, runValidators: true }
-    ).select('-password -__v');
-    
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -163,10 +149,22 @@ const updateProfile = async (req, res) => {
       });
     }
     
+    await user.update({
+      name,
+      email,
+      bio,
+      phone,
+      location,
+      website,
+      linkedin,
+      twitter,
+      github
+    });
+    
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: user
+      data: user.getSafeData()
     });
   } catch (error) {
     res.status(400).json({
@@ -185,7 +183,7 @@ const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
     
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -207,8 +205,7 @@ const changePassword = async (req, res) => {
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
     
     // Update password
-    user.password = hashedNewPassword;
-    await user.save();
+    await user.update({ password: hashedNewPassword });
     
     res.json({
       success: true,
@@ -249,12 +246,12 @@ const logout = async (req, res) => {
 const verifyToken = async (req, res) => {
   try {
     // If we reach here, the token is valid (middleware already verified it)
-    const user = await User.findById(req.user.userId).select('-password -__v');
+    const user = await User.findByPk(req.user.userId);
     
     res.json({
       success: true,
       message: 'Token is valid',
-      data: user
+      data: user.getSafeData()
     });
   } catch (error) {
     res.status(500).json({

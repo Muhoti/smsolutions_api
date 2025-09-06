@@ -1,78 +1,123 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const contactSchema = new mongoose.Schema({
+const Contact = sequelize.define('Contact', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [50, 'Name cannot exceed 50 characters']
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [2, 100]
+    }
   },
   email: {
-    type: String,
-    required: [true, 'Email is required'],
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      isEmail: true,
+      notEmpty: true
+    }
   },
   phone: {
-    type: String,
-    trim: true,
-    maxlength: [20, 'Phone number cannot exceed 20 characters']
+    type: DataTypes.STRING(20),
+    allowNull: true
   },
   company: {
-    type: String,
-    trim: true,
-    maxlength: [100, 'Company name cannot exceed 100 characters']
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
   projectType: {
-    type: String,
-    required: [true, 'Project type is required'],
-    enum: ['mobile', 'web', 'both', 'consultation', 'other']
+    type: DataTypes.ENUM('mobile', 'web', 'both', 'consultation', 'other'),
+    allowNull: false
   },
   budget: {
-    type: String,
-    enum: ['under-10k', '10k-50k', '50k-100k', '100k-plus', 'flexible', 'confidential']
+    type: DataTypes.ENUM('under-10k', '10k-50k', '50k-100k', '100k-plus', 'flexible', 'confidential'),
+    allowNull: true
   },
   timeline: {
-    type: String,
-    enum: ['asap', '1-month', '2-3-months', '3-6-months', '6-months-plus', 'flexible']
+    type: DataTypes.ENUM('asap', '1-month', '2-3-months', '3-6-months', '6-plus-months', 'flexible'),
+    allowNull: true
   },
   message: {
-    type: String,
-    required: [true, 'Message is required'],
-    maxlength: [1000, 'Message cannot exceed 1000 characters']
+    type: DataTypes.TEXT,
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [10, 2000]
+    }
   },
   status: {
-    type: String,
-    enum: ['new', 'contacted', 'in-progress', 'quoted', 'closed'],
-    default: 'new'
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
+    type: DataTypes.ENUM('new', 'in-progress', 'completed', 'closed'),
+    defaultValue: 'new',
+    allowNull: false
   },
   source: {
-    type: String,
-    enum: ['website', 'referral', 'social', 'email', 'phone', 'other'],
-    default: 'website'
+    type: DataTypes.STRING(50),
+    defaultValue: 'website',
+    allowNull: false
   },
-  notes: [{
-    text: String,
-    addedBy: String,
-    addedAt: { type: Date, default: Date.now }
-  }],
-  followUpDate: Date,
+  priority: {
+    type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
+    defaultValue: 'medium',
+    allowNull: false
+  },
   assignedTo: {
-    type: String,
-    default: 'Strong Muhoti'
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  followUpDate: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
-  timestamps: true
+  tableName: 'contacts',
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['status']
+    },
+    {
+      fields: ['projectType']
+    },
+    {
+      fields: ['priority']
+    },
+    {
+      fields: ['createdAt']
+    },
+    {
+      fields: ['email']
+    }
+  ]
 });
 
-// Index for filtering and searching
-contactSchema.index({ status: 1, priority: 1, createdAt: -1 });
-contactSchema.index({ projectType: 1, budget: 1 });
+// Instance methods
+Contact.prototype.markAsInProgress = function() {
+  this.status = 'in-progress';
+  return this.save();
+};
 
-module.exports = mongoose.model('Contact', contactSchema);
+Contact.prototype.markAsCompleted = function() {
+  this.status = 'completed';
+  return this.save();
+};
+
+Contact.prototype.markAsClosed = function() {
+  this.status = 'closed';
+  return this.save();
+};
+
+module.exports = Contact;

@@ -1,100 +1,122 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [50, 'Name cannot exceed 50 characters']
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [2, 50]
+    }
   },
   email: {
-    type: String,
-    required: [true, 'Email is required'],
+    type: DataTypes.STRING(100),
+    allowNull: false,
     unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    validate: {
+      isEmail: true,
+      notEmpty: true
+    }
   },
   password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    validate: {
+      len: [6, 255]
+    }
   },
   role: {
-    type: String,
-    enum: ['admin', 'user'],
-    default: 'admin'
+    type: DataTypes.ENUM('admin', 'user'),
+    defaultValue: 'admin',
+    allowNull: false
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
   },
   lastLogin: {
-    type: Date
+    type: DataTypes.DATE,
+    allowNull: true
   },
-  profile: {
-    avatar: String,
-    bio: String,
-    phone: String,
-    location: String,
-    website: String,
-    social: {
-      linkedin: String,
-      twitter: String,
-      github: String
-    }
+  avatar: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
-  preferences: {
-    theme: {
-      type: String,
-      enum: ['light', 'dark'],
-      default: 'light'
-    },
-    notifications: {
-      email: { type: Boolean, default: true },
-      push: { type: Boolean, default: true }
-    }
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  location: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
+  website: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  linkedin: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  twitter: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  github: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  theme: {
+    type: DataTypes.ENUM('light', 'dark'),
+    defaultValue: 'light',
+    allowNull: false
+  },
+  emailNotifications: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
+  },
+  pushNotifications: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
   }
 }, {
-  timestamps: true
+  tableName: 'users',
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['email']
+    }
+  ]
 });
 
-// Index for email lookup
-userSchema.index({ email: 1 });
-
-// Virtual for user's full profile
-userSchema.virtual('fullProfile').get(function() {
-  return {
-    id: this._id,
-    name: this.name,
-    email: this.email,
-    role: this.role,
-    isActive: this.isActive,
-    lastLogin: this.lastLogin,
-    profile: this.profile,
-    preferences: this.preferences,
-    createdAt: this.createdAt,
-    updatedAt: this.updatedAt
-  };
-});
-
-// Method to update last login
-userSchema.methods.updateLastLogin = function() {
+// Instance methods
+User.prototype.updateLastLogin = function() {
   this.lastLogin = new Date();
   return this.save();
 };
 
-// Method to check if user is admin
-userSchema.methods.isAdmin = function() {
+User.prototype.isAdmin = function() {
   return this.role === 'admin';
 };
 
-// Method to get safe user data (without password)
-userSchema.methods.getSafeData = function() {
-  const userObject = this.toObject();
-  delete userObject.password;
-  delete userObject.__v;
-  return userObject;
+User.prototype.getSafeData = function() {
+  const userData = this.toJSON();
+  delete userData.password;
+  return userData;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

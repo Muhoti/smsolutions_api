@@ -1,4 +1,5 @@
-const Contact = require('../models/Contact');
+const { Contact } = require('../models/associations');
+const { Op } = require('sequelize');
 const nodemailer = require('nodemailer');
 
 // @desc    Get all contact inquiries
@@ -8,23 +9,25 @@ const getAllContacts = async (req, res) => {
   try {
     const { status, projectType, limit = 20, page = 1 } = req.query;
     
-    const filter = {};
-    if (status) filter.status = status;
-    if (projectType) filter.projectType = projectType;
+    const where = {};
+    if (status) where.status = status;
+    if (projectType) where.projectType = projectType;
     
-    const contacts = await Contact.find(filter)
-      .select('-__v')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const offset = (page - 1) * limit;
     
-    const total = await Contact.countDocuments(filter);
+    const { count, rows: contacts } = await Contact.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
       count: contacts.length,
-      total,
-      pages: Math.ceil(total / limit),
+      total: count,
+      pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       data: contacts
     });
@@ -42,7 +45,7 @@ const getAllContacts = async (req, res) => {
 // @access  Private (Admin)
 const getContactById = async (req, res) => {
   try {
-    const contact = await Contact.findById(req.params.id).select('-__v');
+    const contact = await Contact.findByPk(req.params.id);
     
     if (!contact) {
       return res.status(404).json({
@@ -69,8 +72,7 @@ const getContactById = async (req, res) => {
 // @access  Public
 const createContact = async (req, res) => {
   try {
-    const contact = new Contact(req.body);
-    await contact.save();
+    const contact = await Contact.create(req.body);
     
     // Send email notification (optional)
     await sendContactNotification(contact);
@@ -94,11 +96,7 @@ const createContact = async (req, res) => {
 // @access  Private (Admin)
 const updateContact = async (req, res) => {
   try {
-    const contact = await Contact.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).select('-__v');
+    const contact = await Contact.findByPk(req.params.id);
     
     if (!contact) {
       return res.status(404).json({
@@ -106,6 +104,8 @@ const updateContact = async (req, res) => {
         message: 'Contact not found'
       });
     }
+    
+    await contact.update(req.body);
     
     res.json({
       success: true,
@@ -126,7 +126,7 @@ const updateContact = async (req, res) => {
 // @access  Private (Admin)
 const deleteContact = async (req, res) => {
   try {
-    const contact = await Contact.findByIdAndDelete(req.params.id);
+    const contact = await Contact.findByPk(req.params.id);
     
     if (!contact) {
       return res.status(404).json({
@@ -134,6 +134,8 @@ const deleteContact = async (req, res) => {
         message: 'Contact not found'
       });
     }
+    
+    await contact.destroy();
     
     res.json({
       success: true,
@@ -153,44 +155,40 @@ const deleteContact = async (req, res) => {
 // @access  Private (Admin)
 const getContactStats = async (req, res) => {
   try {
-    const total = await Contact.countDocuments();
-    const newInquiries = await Contact.countDocuments({ status: 'new' });
-    const inProgress = await Contact.countDocuments({ status: 'in-progress' });
-    const completed = await Contact.countDocuments({ status: 'completed' });
+    const total = await Contact.count();
+    const newInquiries = await Contact.count({ where: { status: 'new' } });
+    const inProgress = await Contact.count({ where: { status: 'in-progress' } });
+    const completed = await Contact.count({ where: { status: 'completed' } });
     
     // Get inquiries by project type
-    const projectTypeStats = await Contact.aggregate([
-      {
-        $group: {
-          _id: '$projectType',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    const projectTypeStats = await Contact.findAll({
+      attributes: [
+        'projectType',
+        [Contact.sequelize.fn('COUNT', Contact.sequelize.col('id')), 'count']
+      ],
+      group: ['projectType'],
+      raw: true
+    });
     
     // Get monthly stats for the last 6 months
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     
-    const monthlyStats = await Contact.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: sixMonthsAgo }
+    const monthlyStats = await Contact.findAll({
+      attributes: [
+        [Contact.sequelize.fn('EXTRACT', Contact.sequelize.literal('YEAR FROM "createdAt"')), 'year'],
+        [Contact.sequelize.fn('EXTRACT', Contact.sequelize.literal('MONTH FROM "createdAt"')), 'month'],
+        [Contact.sequelize.fn('COUNT', Contact.sequelize.col('id')), 'count']
+      ],
+      where: {
+        createdAt: {
+          [Op.gte]: sixMonthsAgo
         }
       },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { '_id.year': 1, '_id.month': 1 }
-      }
-    ]);
+      group: ['year', 'month'],
+      order: [['year', 'ASC'], ['month', 'ASC']],
+      raw: true
+    });
     
     res.json({
       success: true,
@@ -216,24 +214,24 @@ const getContactStats = async (req, res) => {
 const sendContactNotification = async (contact) => {
   try {
     // Only send if email is configured
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    if (!process.env.MAIL_HOST || !process.env.MAIL_USERNAME) {
       console.log('Email not configured, skipping notification');
       return;
     }
     
     const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: false,
+      host: process.env.MAIL_HOST,
+      port: process.env.MAIL_PORT || 587,
+      secure: process.env.MAIL_ENCRYPTION === 'ssl',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: process.env.MAIL_USERNAME,
+        pass: process.env.MAIL_PASSWORD
       }
     });
     
     const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: process.env.ADMIN_EMAIL || 'strongmuhoti@gmail.com',
+      from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+      to: process.env.MAIL_FROM_ADDRESS,
       subject: `New Contact Inquiry from ${contact.name}`,
       html: `
         <h2>New Contact Inquiry</h2>
@@ -242,6 +240,8 @@ const sendContactNotification = async (contact) => {
         <p><strong>Phone:</strong> ${contact.phone || 'Not provided'}</p>
         <p><strong>Company:</strong> ${contact.company || 'Not provided'}</p>
         <p><strong>Project Type:</strong> ${contact.projectType}</p>
+        <p><strong>Budget:</strong> ${contact.budget || 'Not specified'}</p>
+        <p><strong>Timeline:</strong> ${contact.timeline || 'Not specified'}</p>
         <p><strong>Message:</strong></p>
         <p>${contact.message}</p>
         <p><strong>Submitted:</strong> ${contact.createdAt}</p>

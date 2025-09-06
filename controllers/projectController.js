@@ -1,4 +1,5 @@
-const Project = require('../models/Project');
+const { Project } = require('../models/associations');
+const { Op } = require('sequelize');
 
 // @desc    Get all public projects
 // @route   GET /api/projects
@@ -7,25 +8,27 @@ const getAllProjects = async (req, res) => {
   try {
     const { category, type, featured, limit = 12, page = 1 } = req.query;
     
-    const filter = { isPublic: true };
+    const where = { isPublic: true };
     
-    if (category) filter.category = category;
-    if (type) filter.type = type;
-    if (featured === 'true') filter.featured = true;
+    if (category) where.category = category;
+    if (type) where.type = type;
+    if (featured === 'true') where.featured = true;
     
-    const projects = await Project.find(filter)
-      .select('-__v')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const offset = (page - 1) * limit;
     
-    const total = await Project.countDocuments(filter);
+    const { count, rows: projects } = await Project.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
       count: projects.length,
-      total,
-      pages: Math.ceil(total / limit),
+      total: count,
+      pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       data: projects
     });
@@ -43,13 +46,15 @@ const getAllProjects = async (req, res) => {
 // @access  Public
 const getFeaturedProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ 
-      isPublic: true, 
-      featured: true 
-    })
-    .select('-__v')
-    .sort({ createdAt: -1 })
-    .limit(6);
+    const projects = await Project.findAll({
+      where: { 
+        isPublic: true, 
+        featured: true 
+      },
+      limit: 6,
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
@@ -79,18 +84,25 @@ const searchProjects = async (req, res) => {
       });
     }
     
-    const filter = { 
+    const where = { 
       isPublic: true,
-      $text: { $search: q }
+      [Op.or]: [
+        { title: { [Op.iLike]: `%${q}%` } },
+        { description: { [Op.iLike]: `%${q}%` } },
+        { clientName: { [Op.iLike]: `%${q}%` } },
+        { clientCompany: { [Op.iLike]: `%${q}%` } }
+      ]
     };
     
-    if (category) filter.category = category;
-    if (type) filter.type = type;
+    if (category) where.category = category;
+    if (type) where.type = type;
     
-    const projects = await Project.find(filter, { score: { $meta: 'textScore' } })
-      .select('-__v')
-      .sort({ score: { $meta: 'textScore' } })
-      .limit(20);
+    const projects = await Project.findAll({
+      where,
+      limit: 20,
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['updatedAt'] }
+    });
     
     res.json({
       success: true,
@@ -111,9 +123,15 @@ const searchProjects = async (req, res) => {
 // @access  Public
 const getProjectById = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id).select('-__v');
+    const project = await Project.findOne({
+      where: { 
+        id: req.params.id,
+        isPublic: true 
+      },
+      attributes: { exclude: ['updatedAt'] }
+    });
     
-    if (!project || !project.isPublic) {
+    if (!project) {
       return res.status(404).json({
         success: false,
         message: 'Project not found'
@@ -138,16 +156,38 @@ const getProjectById = async (req, res) => {
 // @access  Public
 const getProjectCategories = async (req, res) => {
   try {
-    const categories = await Project.distinct('category', { isPublic: true });
-    const types = await Project.distinct('type', { isPublic: true });
-    const tags = await Project.distinct('tags', { isPublic: true });
+    const categories = await Project.findAll({
+      where: { isPublic: true },
+      attributes: ['category'],
+      group: ['category'],
+      raw: true
+    });
+    
+    const types = await Project.findAll({
+      where: { isPublic: true },
+      attributes: ['type'],
+      group: ['type'],
+      raw: true
+    });
+    
+    const tags = await Project.findAll({
+      where: { 
+        isPublic: true,
+        tags: { [Op.ne]: null }
+      },
+      attributes: ['tags'],
+      raw: true
+    });
+    
+    // Flatten and get unique tags
+    const allTags = [...new Set(tags.flatMap(t => t.tags || []))].slice(0, 20);
     
     res.json({
       success: true,
       data: {
-        categories,
-        types,
-        tags: tags.filter(tag => tag).slice(0, 20) // Limit to 20 most common tags
+        categories: categories.map(c => c.category),
+        types: types.map(t => t.type),
+        tags: allTags
       }
     });
   } catch (error) {
@@ -164,8 +204,7 @@ const getProjectCategories = async (req, res) => {
 // @access  Private (Admin)
 const createProject = async (req, res) => {
   try {
-    const project = new Project(req.body);
-    await project.save();
+    const project = await Project.create(req.body);
     
     res.status(201).json({
       success: true,
@@ -186,11 +225,7 @@ const createProject = async (req, res) => {
 // @access  Private (Admin)
 const updateProject = async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).select('-__v');
+    const project = await Project.findByPk(req.params.id);
     
     if (!project) {
       return res.status(404).json({
@@ -198,6 +233,8 @@ const updateProject = async (req, res) => {
         message: 'Project not found'
       });
     }
+    
+    await project.update(req.body);
     
     res.json({
       success: true,
@@ -218,7 +255,7 @@ const updateProject = async (req, res) => {
 // @access  Private (Admin)
 const deleteProject = async (req, res) => {
   try {
-    const project = await Project.findByIdAndDelete(req.params.id);
+    const project = await Project.findByPk(req.params.id);
     
     if (!project) {
       return res.status(404).json({
@@ -226,6 +263,8 @@ const deleteProject = async (req, res) => {
         message: 'Project not found'
       });
     }
+    
+    await project.destroy();
     
     res.json({
       success: true,

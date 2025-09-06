@@ -1,76 +1,121 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-const testimonialSchema = new mongoose.Schema({
-  clientName: {
-    type: String,
-    required: [true, 'Client name is required'],
-    trim: true,
-    maxlength: [50, 'Client name cannot exceed 50 characters']
+const Testimonial = sequelize.define('Testimonial', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-  position: {
-    type: String,
-    required: [true, 'Client position is required'],
-    trim: true,
-    maxlength: [100, 'Position cannot exceed 100 characters']
+  name: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [2, 100]
+    }
+  },
+  title: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
   company: {
-    type: String,
-    required: [true, 'Company name is required'],
-    trim: true,
-    maxlength: [100, 'Company name cannot exceed 100 characters']
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
   project: {
-    type: String,
-    required: [true, 'Project name is required'],
-    trim: true,
-    maxlength: [100, 'Project name cannot exceed 100 characters']
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
-  testimonial: {
-    type: String,
-    required: [true, 'Testimonial text is required'],
-    maxlength: [500, 'Testimonial cannot exceed 500 characters']
+  review: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [10, 1000]
+    }
   },
   rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    required: [true, 'Rating is required']
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 5,
+    validate: {
+      min: 1,
+      max: 5
+    }
   },
-  avatar: {
-    type: String,
-    default: null
-  },
-  projectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Project'
+  avatarUrl: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   featured: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  isPublic: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'projects',
+      key: 'id'
+    }
   },
   verified: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
   },
-  industry: {
-    type: String,
-    trim: true,
-    maxlength: [50, 'Industry cannot exceed 50 characters']
-  },
-  results: [{
-    metric: String,
-    value: String,
-    improvement: String
-  }],
-  isPublic: {
-    type: Boolean,
-    default: true
+  socialProof: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {}
   }
 }, {
-  timestamps: true
+  tableName: 'testimonials',
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['featured']
+    },
+    {
+      fields: ['isPublic']
+    },
+    {
+      fields: ['rating']
+    },
+    {
+      fields: ['verified']
+    },
+    {
+      fields: ['projectId']
+    }
+  ]
 });
 
-// Index for featured testimonials
-testimonialSchema.index({ featured: 1, verified: 1, isPublic: 1 });
+// Instance methods
+Testimonial.prototype.markAsFeatured = function() {
+  this.featured = true;
+  return this.save();
+};
 
-module.exports = mongoose.model('Testimonial', testimonialSchema);
+Testimonial.prototype.unmarkAsFeatured = function() {
+  this.featured = false;
+  return this.save();
+};
+
+Testimonial.prototype.verify = function() {
+  this.verified = true;
+  return this.save();
+};
+
+Testimonial.prototype.getStarRating = function() {
+  return '★'.repeat(this.rating) + '☆'.repeat(5 - this.rating);
+};
+
+module.exports = Testimonial;
