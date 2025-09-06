@@ -20,7 +20,7 @@ const getAllTestimonials = async (req, res) => {
       order: [['createdAt', 'DESC']],
       include: [{
         model: Project,
-        as: 'project',
+        as: 'relatedProject',
         attributes: ['id', 'title', 'category']
       }],
       attributes: { exclude: ['updatedAt'] }
@@ -57,7 +57,7 @@ const getFeaturedTestimonials = async (req, res) => {
       order: [['createdAt', 'DESC']],
       include: [{
         model: Project,
-        as: 'project',
+        as: 'relatedProject',
         attributes: ['id', 'title', 'category']
       }],
       attributes: { exclude: ['updatedAt'] }
@@ -89,7 +89,7 @@ const getTestimonialById = async (req, res) => {
       },
       include: [{
         model: Project,
-        as: 'project',
+        as: 'relatedProject',
         attributes: ['id', 'title', 'category', 'description']
       }],
       attributes: { exclude: ['updatedAt'] }

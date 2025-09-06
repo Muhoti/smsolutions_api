@@ -326,7 +326,7 @@ const getTestimonials = async (req, res) => {
       order: [['createdAt', 'DESC']],
       include: [{
         model: Project,
-        as: 'project',
+        as: 'relatedProject',
         attributes: ['id', 'title', 'category']
       }],
       attributes: { exclude: ['updatedAt'] }

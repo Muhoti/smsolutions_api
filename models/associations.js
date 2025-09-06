@@ -29,7 +29,7 @@ User.hasMany(Contact, {
 // Project can have many testimonials
 Testimonial.belongsTo(Project, { 
   foreignKey: 'projectId', 
-  as: 'project' 
+  as: 'relatedProject' 
 });
 Project.hasMany(Testimonial, { 
   foreignKey: 'projectId', 

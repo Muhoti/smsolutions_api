@@ -9,7 +9,7 @@ const sequelize = new Sequelize(
     host: process.env.PGHOST || 'localhost',
     port: process.env.PGPORT || 5432,
     dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
     pool: {
       max: 5,
       min: 0,
@@ -18,7 +18,7 @@ const sequelize = new Sequelize(
     },
     define: {
       timestamps: true,
-      underscored: true,
+      underscored: false,
       freezeTableName: true
     }
   }
