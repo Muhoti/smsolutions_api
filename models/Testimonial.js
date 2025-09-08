@@ -30,10 +30,7 @@ const Testimonial = sequelize.define('Testimonial', {
   review: {
     type: DataTypes.TEXT,
     allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [10, 1000]
-    }
+   
   },
   rating: {
     type: DataTypes.INTEGER,

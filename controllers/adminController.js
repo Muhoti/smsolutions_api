@@ -511,11 +511,14 @@ const createProject = async (req, res) => {
 // @access  Private (Admin)
 const createTestimonial = async (req, res) => {
   try {
+    console.log('Received testimonial data:', req.body);
+    console.log('Field names in request:', Object.keys(req.body));
+    
     const {
-      clientName,
-      position,
+      name,
+      title,
       company,
-      content,
+      review,
       rating = 5,
       project,
       featured = false,
@@ -523,24 +526,37 @@ const createTestimonial = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!clientName || !position || !company || !content) {
+    if (!name || !title || !company || !review) {
       return res.status(400).json({
         success: false,
-        message: 'Client name, position, company, and content are required'
+        message: 'Name, title, company, and review are required'
       });
     }
 
-    // Create testimonial - map frontend fields to model fields
-    const testimonial = await Testimonial.create({
-      name: clientName,        // Map clientName to name
-      title: position,         // Map position to title
-      company: company,
-      review: content,         // Map content to review
-      rating: rating,
-      project: project,
-      featured: featured,
-      verified: verified
+    console.log('Creating testimonial with data:', {
+      name,
+      title,
+      company,
+      review,
+      rating,
+      project,
+      featured,
+      verified
     });
+
+    // Create testimonial
+    const testimonial = await Testimonial.create({
+      name,
+      title,
+      company,
+      review,
+      rating,
+      project,
+      featured,
+      verified
+    });
+
+    console.log('Testimonial created successfully:', testimonial);
 
     res.status(201).json({
       success: true,
@@ -548,10 +564,23 @@ const createTestimonial = async (req, res) => {
       data: testimonial
     });
   } catch (error) {
+    console.error('Error creating testimonial:', error);
+    
+    // Handle validation errors specifically
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error: ' + validationErrors,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error creating testimonial',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
