@@ -480,6 +480,7 @@ const createProject = async (req, res) => {
       title,
       description,
       category,
+      type: category === 'mobile' ? 'cross-platform' : 'web', // Set type based on category
       techStack: techStack ? techStack.split(',').map(tech => tech.trim()) : [],
       liveDemo,
       github,
@@ -498,6 +499,18 @@ const createProject = async (req, res) => {
       data: project
     });
   } catch (error) {
+    console.error('Error creating project:', error);
+    
+    // Handle validation errors specifically
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error: ' + validationErrors,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error creating project',
@@ -585,9 +598,79 @@ const createTestimonial = async (req, res) => {
   }
 };
 
+// @desc    Create new contact
+// @route   POST /api/admin/contacts
+// @access  Private (Admin)
+const createContact = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phone,
+      company,
+      projectType,
+      budget,
+      timeline,
+      message,
+      status = 'new',
+      priority = 'medium',
+      notes
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !projectType || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, project type, and message are required'
+      });
+    }
+
+    // Create contact
+    const contact = await Contact.create({
+      name,
+      email,
+      phone,
+      company,
+      projectType,
+      budget,
+      timeline,
+      message,
+      status,
+      priority,
+      notes,
+      source: 'admin'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Contact created successfully',
+      data: contact
+    });
+  } catch (error) {
+    console.error('Error creating contact:', error);
+    
+    // Handle validation errors specifically
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error: ' + validationErrors,
+        error: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error creating contact',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboard,
   getContacts,
+  createContact,
   updateContact,
   getProjects,
   createProject,

@@ -1,7 +1,7 @@
 {
   "name": "strongmuhoti-api",
   "version": "1.0.0",
-  "description": "API for Strong Muhoti App Development Business",
+  "description": "API for SMSolutions App Development Business",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -28,6 +28,6 @@
     "jest": "^29.6.2"
   },
   "keywords": ["app-development", "business", "api", "portfolio"],
-  "author": "Strong Muhoti",
+  "author": "SMSolutions",
   "license": "MIT"
 }

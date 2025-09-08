@@ -44,7 +44,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Strong Muhoti API is running',
+    message: 'SMSolutions API is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -64,7 +64,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Strong Muhoti API running on port ${PORT}`);
+  console.log(`🚀 SMSolutions API running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
 });
 

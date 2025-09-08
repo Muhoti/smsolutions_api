@@ -150,7 +150,7 @@ curl http://localhost:3003/api/health
 curl -X POST http://localhost:3003/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Strong Muhoti",
+    "name": "SMSolutions",
     "email": "admin@strongmuhoti.com",
     "password": "admin123"
   }'

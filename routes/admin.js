@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getDashboard,
   getContacts,
+  createContact,
   updateContact,
   getProjects,
   createProject,
@@ -25,6 +26,9 @@ router.get('/dashboard', getDashboard);
 // @desc    Get all contacts with filtering
 // @access  Private (Admin)
 router.get('/contacts', getContacts);
+
+
+router.post('/contacts', createContact);
 
 // @route   PUT /api/admin/contacts/:id
 // @desc    Update contact status/notes
