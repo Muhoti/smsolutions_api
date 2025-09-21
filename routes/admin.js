@@ -21,7 +21,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 // @desc    Get admin dashboard data
 // @access  Private (Admin)
 router.get('/dashboard', getDashboard);
-
+// new contact route
 // @route   GET /api/admin/contacts
 // @desc    Get all contacts with filtering
 // @access  Private (Admin)
