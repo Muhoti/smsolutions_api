@@ -1,5 +1,10 @@
-const { Contact, Project, Testimonial, User } = require('../models/associations');
-const { Op } = require('sequelize');
+const {
+  Contact,
+  Project,
+  Testimonial,
+  User,
+} = require("../models/associations");
+const { Op } = require("sequelize");
 
 // @desc    Get admin dashboard data
 // @route   GET /api/admin/dashboard
@@ -8,23 +13,27 @@ const getDashboard = async (req, res) => {
   try {
     // Get contact statistics
     const totalContacts = await Contact.count();
-    const newContacts = await Contact.count({ where: { status: 'new' } });
+    const newContacts = await Contact.count({ where: { status: "new" } });
     const thisMonthContacts = await Contact.count({
       where: {
         createdAt: {
-          [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        }
-      }
+          [Op.gte]: new Date(
+            new Date().getFullYear(),
+            new Date().getMonth(),
+            1,
+          ),
+        },
+      },
     });
 
     // Get contact status breakdown
     const contactStatusStats = await Contact.findAll({
       attributes: [
-        'status',
-        [Contact.sequelize.fn('COUNT', Contact.sequelize.col('id')), 'count']
+        "status",
+        [Contact.sequelize.fn("COUNT", Contact.sequelize.col("id")), "count"],
       ],
-      group: ['status'],
-      raw: true
+      group: ["status"],
+      raw: true,
     });
 
     // Get project statistics
@@ -35,37 +44,41 @@ const getDashboard = async (req, res) => {
     // Get project status breakdown
     const projectStatusStats = await Project.findAll({
       attributes: [
-        'status',
-        [Project.sequelize.fn('COUNT', Project.sequelize.col('id')), 'count']
+        "status",
+        [Project.sequelize.fn("COUNT", Project.sequelize.col("id")), "count"],
       ],
-      group: ['status'],
-      raw: true
+      group: ["status"],
+      raw: true,
     });
 
     // Get testimonial statistics
     const totalTestimonials = await Testimonial.count();
-    const verifiedTestimonials = await Testimonial.count({ where: { verified: true } });
-    const featuredTestimonials = await Testimonial.count({ where: { featured: true } });
+    const verifiedTestimonials = await Testimonial.count({
+      where: { verified: true },
+    });
+    const featuredTestimonials = await Testimonial.count({
+      where: { featured: true },
+    });
 
     // Recent contacts
     const recentContacts = await Contact.findAll({
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit: 5,
-      attributes: ['id', 'name', 'email', 'projectType', 'status', 'createdAt']
+      attributes: ["id", "name", "email", "projectType", "status", "createdAt"],
     });
 
     // Recent projects
     const recentProjects = await Project.findAll({
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit: 5,
-      attributes: ['id', 'title', 'category', 'status', 'createdAt']
+      attributes: ["id", "title", "category", "status", "createdAt"],
     });
 
     // Recent testimonials
     const recentTestimonials = await Testimonial.findAll({
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit: 5,
-      attributes: ['id', 'name', 'company', 'rating', 'verified', 'createdAt']
+      attributes: ["id", "name", "company", "rating", "verified", "createdAt"],
     });
 
     // Monthly stats for the last 6 months
@@ -74,34 +87,64 @@ const getDashboard = async (req, res) => {
 
     const monthlyContacts = await Contact.findAll({
       attributes: [
-        [Contact.sequelize.fn('EXTRACT', Contact.sequelize.literal('YEAR FROM "createdAt"')), 'year'],
-        [Contact.sequelize.fn('EXTRACT', Contact.sequelize.literal('MONTH FROM "createdAt"')), 'month'],
-        [Contact.sequelize.fn('COUNT', Contact.sequelize.col('id')), 'count']
+        [
+          Contact.sequelize.fn(
+            "EXTRACT",
+            Contact.sequelize.literal('YEAR FROM "createdAt"'),
+          ),
+          "year",
+        ],
+        [
+          Contact.sequelize.fn(
+            "EXTRACT",
+            Contact.sequelize.literal('MONTH FROM "createdAt"'),
+          ),
+          "month",
+        ],
+        [Contact.sequelize.fn("COUNT", Contact.sequelize.col("id")), "count"],
       ],
       where: {
         createdAt: {
-          [Op.gte]: sixMonthsAgo
-        }
+          [Op.gte]: sixMonthsAgo,
+        },
       },
-      group: ['year', 'month'],
-      order: [['year', 'ASC'], ['month', 'ASC']],
-      raw: true
+      group: ["year", "month"],
+      order: [
+        ["year", "ASC"],
+        ["month", "ASC"],
+      ],
+      raw: true,
     });
 
     const monthlyProjects = await Project.findAll({
       attributes: [
-        [Project.sequelize.fn('EXTRACT', Project.sequelize.literal('YEAR FROM "createdAt"')), 'year'],
-        [Project.sequelize.fn('EXTRACT', Project.sequelize.literal('MONTH FROM "createdAt"')), 'month'],
-        [Project.sequelize.fn('COUNT', Project.sequelize.col('id')), 'count']
+        [
+          Project.sequelize.fn(
+            "EXTRACT",
+            Project.sequelize.literal('YEAR FROM "createdAt"'),
+          ),
+          "year",
+        ],
+        [
+          Project.sequelize.fn(
+            "EXTRACT",
+            Project.sequelize.literal('MONTH FROM "createdAt"'),
+          ),
+          "month",
+        ],
+        [Project.sequelize.fn("COUNT", Project.sequelize.col("id")), "count"],
       ],
       where: {
         createdAt: {
-          [Op.gte]: sixMonthsAgo
-        }
+          [Op.gte]: sixMonthsAgo,
+        },
       },
-      group: ['year', 'month'],
-      order: [['year', 'ASC'], ['month', 'ASC']],
-      raw: true
+      group: ["year", "month"],
+      order: [
+        ["year", "ASC"],
+        ["month", "ASC"],
+      ],
+      raw: true,
     });
 
     res.json({
@@ -111,35 +154,35 @@ const getDashboard = async (req, res) => {
           total: totalContacts,
           new: newContacts,
           thisMonth: thisMonthContacts,
-          byStatus: contactStatusStats
+          byStatus: contactStatusStats,
         },
         projects: {
           total: totalProjects,
           featured: featuredProjects,
           public: publicProjects,
-          byStatus: projectStatusStats
+          byStatus: projectStatusStats,
         },
         testimonials: {
           total: totalTestimonials,
           verified: verifiedTestimonials,
-          featured: featuredTestimonials
+          featured: featuredTestimonials,
         },
         recent: {
           contacts: recentContacts,
           projects: recentProjects,
-          testimonials: recentTestimonials
+          testimonials: recentTestimonials,
         },
         analytics: {
           monthlyContacts,
-          monthlyProjects
-        }
-      }
+          monthlyProjects,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching dashboard data',
-      error: error.message
+      message: "Error fetching dashboard data",
+      error: error.message,
     });
   }
 };
@@ -149,13 +192,13 @@ const getDashboard = async (req, res) => {
 // @access  Private (Admin)
 const getContacts = async (req, res) => {
   try {
-    const { 
-      status, 
-      priority, 
-      projectType, 
-      page = 1, 
+    const {
+      status,
+      priority,
+      projectType,
+      page = 1,
       limit = 20,
-      search 
+      search,
     } = req.query;
 
     const where = {};
@@ -166,7 +209,7 @@ const getContacts = async (req, res) => {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } },
-        { company: { [Op.iLike]: `%${search}%` } }
+        { company: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -176,8 +219,8 @@ const getContacts = async (req, res) => {
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      attributes: { exclude: ['updatedAt'] }
+      order: [["createdAt", "DESC"]],
+      attributes: { exclude: ["updatedAt"] },
     });
 
     res.json({
@@ -186,13 +229,13 @@ const getContacts = async (req, res) => {
       total: count,
       pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
-      data: contacts
+      data: contacts,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching contacts',
-      error: error.message
+      message: "Error fetching contacts",
+      error: error.message,
     });
   }
 };
@@ -205,11 +248,11 @@ const updateContact = async (req, res) => {
     const { status, priority, notes, followUpDate, assignedTo } = req.body;
 
     const contact = await Contact.findByPk(req.params.id);
-    
+
     if (!contact) {
       return res.status(404).json({
         success: false,
-        message: 'Contact not found'
+        message: "Contact not found",
       });
     }
 
@@ -228,14 +271,14 @@ const updateContact = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Contact updated successfully',
-      data: contact
+      message: "Contact updated successfully",
+      data: contact,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error updating contact',
-      error: error.message
+      message: "Error updating contact",
+      error: error.message,
     });
   }
 };
@@ -245,24 +288,24 @@ const updateContact = async (req, res) => {
 // @access  Private (Admin)
 const getProjects = async (req, res) => {
   try {
-    const { 
-      status, 
-      featured, 
-      category, 
-      page = 1, 
+    const {
+      status,
+      featured,
+      category,
+      page = 1,
       limit = 20,
-      search 
+      search,
     } = req.query;
 
     const where = {};
     if (status) where.status = status;
-    if (featured !== undefined) where.featured = featured === 'true';
+    if (featured !== undefined) where.featured = featured === "true";
     if (category) where.category = category;
     if (search) {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } },
-        { clientName: { [Op.iLike]: `%${search}%` } }
+        { clientName: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -272,8 +315,8 @@ const getProjects = async (req, res) => {
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      attributes: { exclude: ['updatedAt'] }
+      order: [["createdAt", "DESC"]],
+      attributes: { exclude: ["updatedAt"] },
     });
 
     res.json({
@@ -282,13 +325,13 @@ const getProjects = async (req, res) => {
       total: count,
       pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
-      data: projects
+      data: projects,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching projects',
-      error: error.message
+      message: "Error fetching projects",
+      error: error.message,
     });
   }
 };
@@ -298,22 +341,16 @@ const getProjects = async (req, res) => {
 // @access  Private (Admin)
 const getTestimonials = async (req, res) => {
   try {
-    const { 
-      featured, 
-      verified, 
-      page = 1, 
-      limit = 20,
-      search 
-    } = req.query;
+    const { featured, verified, page = 1, limit = 20, search } = req.query;
 
     const where = {};
-    if (featured !== undefined) where.featured = featured === 'true';
-    if (verified !== undefined) where.verified = verified === 'true';
+    if (featured !== undefined) where.featured = featured === "true";
+    if (verified !== undefined) where.verified = verified === "true";
     if (search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${search}%` } },
         { company: { [Op.iLike]: `%${search}%` } },
-        { review: { [Op.iLike]: `%${search}%` } }
+        { review: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -323,13 +360,15 @@ const getTestimonials = async (req, res) => {
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      include: [{
-        model: Project,
-        as: 'relatedProject',
-        attributes: ['id', 'title', 'category']
-      }],
-      attributes: { exclude: ['updatedAt'] }
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Project,
+          as: "relatedProject",
+          attributes: ["id", "title", "category"],
+        },
+      ],
+      attributes: { exclude: ["updatedAt"] },
     });
 
     res.json({
@@ -338,13 +377,13 @@ const getTestimonials = async (req, res) => {
       total: count,
       pages: Math.ceil(count / limit),
       currentPage: parseInt(page),
-      data: testimonials
+      data: testimonials,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching testimonials',
-      error: error.message
+      message: "Error fetching testimonials",
+      error: error.message,
     });
   }
 };
@@ -363,29 +402,29 @@ const getSystemStats = async (req, res) => {
     // Get status breakdowns
     const contactStatusBreakdown = await Contact.findAll({
       attributes: [
-        'status',
-        [Contact.sequelize.fn('COUNT', Contact.sequelize.col('id')), 'count']
+        "status",
+        [Contact.sequelize.fn("COUNT", Contact.sequelize.col("id")), "count"],
       ],
-      group: ['status'],
-      raw: true
+      group: ["status"],
+      raw: true,
     });
 
     const projectStatusBreakdown = await Project.findAll({
       attributes: [
-        'status',
-        [Project.sequelize.fn('COUNT', Project.sequelize.col('id')), 'count']
+        "status",
+        [Project.sequelize.fn("COUNT", Project.sequelize.col("id")), "count"],
       ],
-      group: ['status'],
-      raw: true
+      group: ["status"],
+      raw: true,
     });
 
     const projectCategoryBreakdown = await Project.findAll({
       attributes: [
-        'category',
-        [Project.sequelize.fn('COUNT', Project.sequelize.col('id')), 'count']
+        "category",
+        [Project.sequelize.fn("COUNT", Project.sequelize.col("id")), "count"],
       ],
-      group: ['category'],
-      raw: true
+      group: ["category"],
+      raw: true,
     });
 
     // Get recent activity (last 30 days)
@@ -395,25 +434,25 @@ const getSystemStats = async (req, res) => {
     const recentContacts = await Contact.count({
       where: {
         createdAt: {
-          [Op.gte]: thirtyDaysAgo
-        }
-      }
+          [Op.gte]: thirtyDaysAgo,
+        },
+      },
     });
 
     const recentProjects = await Project.count({
       where: {
         createdAt: {
-          [Op.gte]: thirtyDaysAgo
-        }
-      }
+          [Op.gte]: thirtyDaysAgo,
+        },
+      },
     });
 
     const recentTestimonials = await Testimonial.count({
       where: {
         createdAt: {
-          [Op.gte]: thirtyDaysAgo
-        }
-      }
+          [Op.gte]: thirtyDaysAgo,
+        },
+      },
     });
 
     res.json({
@@ -423,25 +462,25 @@ const getSystemStats = async (req, res) => {
           contacts: totalContacts,
           projects: totalProjects,
           testimonials: totalTestimonials,
-          users: totalUsers
+          users: totalUsers,
         },
         breakdowns: {
           contactStatus: contactStatusBreakdown,
           projectStatus: projectStatusBreakdown,
-          projectCategory: projectCategoryBreakdown
+          projectCategory: projectCategoryBreakdown,
         },
         recent: {
           contacts: recentContacts,
           projects: recentProjects,
-          testimonials: recentTestimonials
-        }
-      }
+          testimonials: recentTestimonials,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching system statistics',
-      error: error.message
+      message: "Error fetching system statistics",
+      error: error.message,
     });
   }
 };
@@ -461,17 +500,17 @@ const createProject = async (req, res) => {
       playStore,
       appStore,
       featured = false,
-      status = 'completed',
+      status = "completed",
       clientName,
       projectDuration,
-      projectBudget
+      projectBudget,
     } = req.body;
 
     // Validate required fields
     if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
-        message: 'Title, description, and category are required'
+        message: "Title, description, and category are required",
       });
     }
 
@@ -480,8 +519,10 @@ const createProject = async (req, res) => {
       title,
       description,
       category,
-      type: category === 'mobile' ? 'cross-platform' : 'web', // Set type based on category
-      techStack: techStack ? techStack.split(',').map(tech => tech.trim()) : [],
+      type: category === "mobile" ? "cross-platform" : "web", // Set type based on category
+      techStack: techStack
+        ? techStack.split(",").map((tech) => tech.trim())
+        : [],
       liveDemo,
       github,
       playStore,
@@ -490,31 +531,33 @@ const createProject = async (req, res) => {
       status,
       clientName,
       projectDuration,
-      projectBudget
+      projectBudget,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Project created successfully',
-      data: project
+      message: "Project created successfully",
+      data: project,
     });
   } catch (error) {
-    console.error('Error creating project:', error);
-    
+    console.error("Error creating project:", error);
+
     // Handle validation errors specifically
-    if (error.name === 'SequelizeValidationError') {
-      const validationErrors = error.errors.map(err => err.message).join(', ');
+    if (error.name === "SequelizeValidationError") {
+      const validationErrors = error.errors
+        .map((err) => err.message)
+        .join(", ");
       return res.status(400).json({
         success: false,
-        message: 'Validation error: ' + validationErrors,
-        error: error.message
+        message: "Validation error: " + validationErrors,
+        error: error.message,
       });
     }
-    
+
     res.status(500).json({
       success: false,
-      message: 'Error creating project',
-      error: error.message
+      message: "Error creating project",
+      error: error.message,
     });
   }
 };
@@ -524,9 +567,9 @@ const createProject = async (req, res) => {
 // @access  Private (Admin)
 const createTestimonial = async (req, res) => {
   try {
-    console.log('Received testimonial data:', req.body);
-    console.log('Field names in request:', Object.keys(req.body));
-    
+    console.log("Received testimonial data:", req.body);
+    console.log("Field names in request:", Object.keys(req.body));
+
     const {
       name,
       title,
@@ -535,18 +578,18 @@ const createTestimonial = async (req, res) => {
       rating = 5,
       project,
       featured = false,
-      verified = true
+      verified = true,
     } = req.body;
 
     // Validate required fields
     if (!name || !title || !company || !review) {
       return res.status(400).json({
         success: false,
-        message: 'Name, title, company, and review are required'
+        message: "Name, title, company, and review are required",
       });
     }
 
-    console.log('Creating testimonial with data:', {
+    console.log("Creating testimonial with data:", {
       name,
       title,
       company,
@@ -554,7 +597,7 @@ const createTestimonial = async (req, res) => {
       rating,
       project,
       featured,
-      verified
+      verified,
     });
 
     // Create testimonial
@@ -566,34 +609,36 @@ const createTestimonial = async (req, res) => {
       rating,
       project,
       featured,
-      verified
+      verified,
     });
 
-    console.log('Testimonial created successfully:', testimonial);
+    console.log("Testimonial created successfully:", testimonial);
 
     res.status(201).json({
       success: true,
-      message: 'Testimonial created successfully',
-      data: testimonial
+      message: "Testimonial created successfully",
+      data: testimonial,
     });
   } catch (error) {
-    console.error('Error creating testimonial:', error);
-    
+    console.error("Error creating testimonial:", error);
+
     // Handle validation errors specifically
-    if (error.name === 'SequelizeValidationError') {
-      const validationErrors = error.errors.map(err => err.message).join(', ');
+    if (error.name === "SequelizeValidationError") {
+      const validationErrors = error.errors
+        .map((err) => err.message)
+        .join(", ");
       return res.status(400).json({
         success: false,
-        message: 'Validation error: ' + validationErrors,
-        error: error.message
+        message: "Validation error: " + validationErrors,
+        error: error.message,
       });
     }
-    
+
     res.status(500).json({
       success: false,
-      message: 'Error creating testimonial',
+      message: "Error creating testimonial",
       error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -612,16 +657,16 @@ const createContact = async (req, res) => {
       budget,
       timeline,
       message,
-      status = 'new',
-      priority = 'medium',
-      notes
+      status = "new",
+      priority = "medium",
+      notes,
     } = req.body;
 
     // Validate required fields
     if (!name || !email || !projectType || !message) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, project type, and message are required'
+        message: "Name, email, project type, and message are required",
       });
     }
 
@@ -638,31 +683,33 @@ const createContact = async (req, res) => {
       status,
       priority,
       notes,
-      source: 'admin'
+      source: "admin",
     });
 
     res.status(201).json({
       success: true,
-      message: 'Contact created successfully',
-      data: contact
+      message: "Contact created successfully",
+      data: contact,
     });
   } catch (error) {
-    console.error('Error creating contact:', error);
-    
+    console.error("Error creating contact:", error);
+
     // Handle validation errors specifically
-    if (error.name === 'SequelizeValidationError') {
-      const validationErrors = error.errors.map(err => err.message).join(', ');
+    if (error.name === "SequelizeValidationError") {
+      const validationErrors = error.errors
+        .map((err) => err.message)
+        .join(", ");
       return res.status(400).json({
         success: false,
-        message: 'Validation error: ' + validationErrors,
-        error: error.message
+        message: "Validation error: " + validationErrors,
+        error: error.message,
       });
     }
-    
+
     res.status(500).json({
       success: false,
-      message: 'Error creating contact',
-      error: error.message
+      message: "Error creating contact",
+      error: error.message,
     });
   }
 };
@@ -676,5 +723,5 @@ module.exports = {
   createProject,
   getTestimonials,
   createTestimonial,
-  getSystemStats
+  getSystemStats,
 };
