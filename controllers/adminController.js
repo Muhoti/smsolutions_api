@@ -567,9 +567,6 @@ const createProject = async (req, res) => {
 // @access  Private (Admin)
 const createTestimonial = async (req, res) => {
   try {
-    console.log("Received testimonial data:", req.body);
-    console.log("Field names in request:", Object.keys(req.body));
-
     const {
       name,
       title,
@@ -589,18 +586,6 @@ const createTestimonial = async (req, res) => {
       });
     }
 
-    console.log("Creating testimonial with data:", {
-      name,
-      title,
-      company,
-      review,
-      rating,
-      project,
-      featured,
-      verified,
-    });
-
-    // Create testimonial
     const testimonial = await Testimonial.create({
       name,
       title,
@@ -611,8 +596,6 @@ const createTestimonial = async (req, res) => {
       featured,
       verified,
     });
-
-    console.log("Testimonial created successfully:", testimonial);
 
     res.status(201).json({
       success: true,

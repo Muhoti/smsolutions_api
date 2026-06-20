@@ -2,7 +2,7 @@ const { Sequelize } = require('sequelize');
 
 // Database configuration
 const sequelize = new Sequelize(
-  process.env.PGDATABASE || 'strongmuhoti',
+  process.env.PGDATABASE || 'sdl_db',
   process.env.PGUSER || 'postgres',
   process.env.PGPASSWORD || 'password',
   {

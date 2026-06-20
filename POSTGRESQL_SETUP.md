@@ -1,4 +1,4 @@
-# PostgreSQL Setup Guide
+# PostgreSQL Setup — Strong's Digital Labs API
 
 ## 🐘 **Database Migration: MongoDB → PostgreSQL**
 
@@ -29,7 +29,7 @@ NODE_ENV=development
 # Database Configuration (PostgreSQL)
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=strongmuhoti
+DB_NAME=sdl_db
 DB_USER=postgres
 DB_PASSWORD=your_password
 
@@ -41,7 +41,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-ADMIN_EMAIL=strongmuhoti@gmail.com
+ADMIN_EMAIL=admin@strongsdigitallabs.com
 
 # Frontend URL
 FRONTEND_URL=http://localhost:3000
@@ -56,11 +56,11 @@ FRONTEND_URL=http://localhost:3000
 psql -U postgres
 
 -- Create database
-CREATE DATABASE strongmuhoti;
+CREATE DATABASE sdl_db;
 
 -- Create user (optional)
-CREATE USER strongmuhoti_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE strongmuhoti TO strongmuhoti_user;
+CREATE USER sdl_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE sdl_db TO sdl_user;
 ```
 
 ### 2. **Run the API**
@@ -150,8 +150,8 @@ curl http://localhost:3003/api/health
 curl -X POST http://localhost:3003/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "SMSolutions",
-    "email": "admin@strongmuhoti.com",
+    "name": "Strong's Digital Labs",
+    "email": "admin@strongsdigitallabs.com",
     "password": "admin123"
   }'
 ```
@@ -162,7 +162,7 @@ curl -X POST http://localhost:3003/api/auth/register \
 curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@strongmuhoti.com",
+    "email": "admin@strongsdigitallabs.com",
     "password": "admin123"
   }'
 ```
@@ -178,7 +178,7 @@ curl http://localhost:3003/api/projects
 ### **Connect to Database**
 
 ```bash
-psql -U postgres -d strongmuhoti
+psql -U postgres -d sdl_db
 ```
 
 ### **View Tables**
