@@ -41,7 +41,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-ADMIN_EMAIL=admin@strongsdigitallabs.com
+ADMIN_EMAIL=admin@smsolutions.co.ke
 
 # Frontend URL
 FRONTEND_URL=http://localhost:3000
@@ -151,7 +151,7 @@ curl -X POST http://localhost:3003/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Strong's Digital Labs",
-    "email": "admin@strongsdigitallabs.com",
+    "email": "admin@smsolutions.co.ke",
     "password": "admin123"
   }'
 ```
@@ -162,7 +162,7 @@ curl -X POST http://localhost:3003/api/auth/register \
 curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@strongsdigitallabs.com",
+    "email": "admin@smsolutions.co.ke",
     "password": "admin123"
   }'
 ```
