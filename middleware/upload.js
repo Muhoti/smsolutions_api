@@ -5,7 +5,11 @@ const fs = require('fs');
 // In Docker, mount ./uploads → /usr/src/app/uploads (see server docker-compose volume)
 const uploadsBase = process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads');
 const projectsDir = path.join(uploadsBase, 'projects');
-fs.mkdirSync(projectsDir, { recursive: true });
+try {
+  fs.mkdirSync(projectsDir, { recursive: true });
+} catch (err) {
+  console.error('Warning: could not create uploads directory:', projectsDir, err.message);
+}
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, projectsDir),
   filename: (_req, file, cb) => {
