@@ -65,7 +65,7 @@ router.post(
         return res.status(isTooLarge ? 413 : 400).json({
           success: false,
           message: isTooLarge
-            ? 'Image is too large. Maximum size is 10 MB.'
+            ? 'Image is too large. Maximum size is 20 MB.'
             : err.message || 'Image upload failed',
         });
       }

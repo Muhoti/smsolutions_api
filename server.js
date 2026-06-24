@@ -30,9 +30,9 @@ app.use(cors({
 // });
 // app.use(limiter);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware (image uploads use multer — see middleware/upload.js)
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Uploaded files (served under /api for dev proxy + production nginx)
 app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
