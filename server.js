@@ -35,7 +35,7 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Uploaded files (served under /api for dev proxy + production nginx)
-app.use("/api/uploads", express.static("/usr/src/app/uploads"));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

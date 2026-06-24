@@ -2,9 +2,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const projectsDir = path.join(__dirname, '..', 'uploads', 'projects');
+// In Docker, mount ./uploads → /usr/src/app/uploads (see server docker-compose volume)
+const uploadsBase = process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads');
+const projectsDir = path.join(uploadsBase, 'projects');
 fs.mkdirSync(projectsDir, { recursive: true });
-
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, projectsDir),
   filename: (_req, file, cb) => {
@@ -20,7 +21,7 @@ const imageFilter = (_req, file, cb) => {
     cb(null, true);
     return;
   }
-  cb(new Error('Only JPG, PNG, GIF, or WebP images are allowed'));
+  cb(new Error("Only JPG, PNG, GIF, or WebP images are allowed"));
 };
 
 const projectImageUpload = multer({
