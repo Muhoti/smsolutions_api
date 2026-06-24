@@ -485,37 +485,59 @@ const getSystemStats = async (req, res) => {
   }
 };
 
+const parseProjectBody = (body) => {
+  const {
+    title,
+    description,
+    category,
+    techStack,
+    liveDemo,
+    playStore,
+    appStore,
+    featured = false,
+    status = "completed",
+    clientName,
+    coverImageUrl,
+    images,
+    projectDuration,
+    projectBudget,
+  } = body;
+
+  const imageList = Array.isArray(images) && images.length > 0
+    ? images.filter(Boolean)
+    : coverImageUrl?.trim()
+      ? [coverImageUrl.trim()]
+      : [];
+
+  return {
+    title,
+    description,
+    category,
+    techStack: techStack
+      ? techStack.split(",").map((tech) => tech.trim()).filter(Boolean)
+      : [],
+    images: imageList,
+    liveDemo,
+    playStore,
+    appStore,
+    featured: featured === true || featured === "true" || featured === "on",
+    status,
+    clientName,
+    projectDuration,
+    projectBudget,
+    type: category === "mobile" ? "cross-platform" : "web",
+  };
+};
+
 // @desc    Create new project
 // @route   POST /api/admin/projects
 // @access  Private (Admin)
 const createProject = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      category,
-      techStack,
-      liveDemo,
-      github,
-      playStore,
-      appStore,
-      featured = false,
-      status = "completed",
-      clientName,
-      coverImageUrl,
-      images,
-      projectDuration,
-      projectBudget,
-    } = req.body;
-
-    const imageList = Array.isArray(images) && images.length > 0
-      ? images.filter(Boolean)
-      : coverImageUrl?.trim()
-        ? [coverImageUrl.trim()]
-        : [];
+    const data = parseProjectBody(req.body);
 
     // Validate required fields
-    if (!title || !description || !category) {
+    if (!data.title || !data.description || !data.category) {
       return res.status(400).json({
         success: false,
         message: "Title, description, and category are required",
@@ -523,25 +545,7 @@ const createProject = async (req, res) => {
     }
 
     // Create project
-    const project = await Project.create({
-      title,
-      description,
-      category,
-      type: category === "mobile" ? "cross-platform" : "web", // Set type based on category
-      techStack: techStack
-        ? techStack.split(",").map((tech) => tech.trim())
-        : [],
-      images: imageList,
-      liveDemo,
-      github,
-      playStore,
-      appStore,
-      featured,
-      status,
-      clientName,
-      projectDuration,
-      projectBudget,
-    });
+    const project = await Project.create(data);
 
     res.status(201).json({
       success: true,
@@ -566,6 +570,88 @@ const createProject = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error creating project",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update project
+// @route   PUT /api/admin/projects/:id
+// @access  Private (Admin)
+const updateProject = async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const data = parseProjectBody(req.body);
+
+    if (!data.title || !data.description || !data.category) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, and category are required",
+      });
+    }
+
+    await project.update(data);
+
+    res.json({
+      success: true,
+      message: "Project updated successfully",
+      data: project,
+    });
+  } catch (error) {
+    console.error("Error updating project:", error);
+
+    if (error.name === "SequelizeValidationError") {
+      const validationErrors = error.errors
+        .map((err) => err.message)
+        .join(", ");
+      return res.status(400).json({
+        success: false,
+        message: "Validation error: " + validationErrors,
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error updating project",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete project
+// @route   DELETE /api/admin/projects/:id
+// @access  Private (Admin)
+const deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    await project.destroy();
+
+    res.json({
+      success: true,
+      message: "Project deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting project",
       error: error.message,
     });
   }
@@ -706,6 +792,35 @@ const createContact = async (req, res) => {
   }
 };
 
+// @desc    Upload project cover image
+// @route   POST /api/admin/upload/project-image
+// @access  Private (Admin)
+const uploadProjectImage = (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided',
+      });
+    }
+
+    const url = `/api/uploads/projects/${req.file.filename}`;
+
+    res.status(201).json({
+      success: true,
+      message: 'Image uploaded successfully',
+      data: { url },
+    });
+  } catch (error) {
+    console.error('Error uploading project image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading image',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDashboard,
   getContacts,
@@ -713,7 +828,10 @@ module.exports = {
   updateContact,
   getProjects,
   createProject,
+  updateProject,
+  deleteProject,
   getTestimonials,
   createTestimonial,
   getSystemStats,
+  uploadProjectImage,
 };

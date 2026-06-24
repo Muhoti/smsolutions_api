@@ -7,11 +7,15 @@ const {
   updateContact,
   getProjects,
   createProject,
+  updateProject,
+  deleteProject,
   getTestimonials,
   createTestimonial,
-  getSystemStats
+  getSystemStats,
+  uploadProjectImage,
 } = require('../controllers/adminController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { projectImageUpload } = require('../middleware/upload');
 
 // Apply authentication and admin middleware to all admin routes
 // Temporarily disabled for development - uncomment for production
@@ -44,6 +48,29 @@ router.get('/projects', getProjects);
 // @desc    Create new project
 // @access  Private (Admin)
 router.post('/projects', createProject);
+
+router.put('/projects/:id', updateProject);
+
+router.delete('/projects/:id', deleteProject);
+
+// @route   POST /api/admin/upload/project-image
+// @desc    Upload project cover image
+// @access  Private (Admin)
+router.post(
+  '/upload/project-image',
+  (req, res, next) => {
+    projectImageUpload.single('image')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Image upload failed',
+        });
+      }
+      next();
+    });
+  },
+  uploadProjectImage
+);
 
 // @route   GET /api/admin/testimonials
 // @desc    Get all testimonials for admin

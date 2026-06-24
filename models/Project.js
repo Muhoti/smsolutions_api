@@ -20,7 +20,7 @@ const Project = sequelize.define('Project', {
     allowNull: false,
     validate: {
       notEmpty: true,
-      len: [1, 500]
+      len: [1, 2000]
     }
   },
   category: {
