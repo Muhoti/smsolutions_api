@@ -502,9 +502,17 @@ const createProject = async (req, res) => {
       featured = false,
       status = "completed",
       clientName,
+      coverImageUrl,
+      images,
       projectDuration,
       projectBudget,
     } = req.body;
+
+    const imageList = Array.isArray(images) && images.length > 0
+      ? images.filter(Boolean)
+      : coverImageUrl?.trim()
+        ? [coverImageUrl.trim()]
+        : [];
 
     // Validate required fields
     if (!title || !description || !category) {
@@ -523,6 +531,7 @@ const createProject = async (req, res) => {
       techStack: techStack
         ? techStack.split(",").map((tech) => tech.trim())
         : [],
+      images: imageList,
       liveDemo,
       github,
       playStore,
