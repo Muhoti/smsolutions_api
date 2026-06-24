@@ -61,9 +61,12 @@ router.post(
   (req, res, next) => {
     projectImageUpload.single('image')(req, res, (err) => {
       if (err) {
-        return res.status(400).json({
+        const isTooLarge = err.code === 'LIMIT_FILE_SIZE';
+        return res.status(isTooLarge ? 413 : 400).json({
           success: false,
-          message: err.message || 'Image upload failed',
+          message: isTooLarge
+            ? 'Image is too large. Maximum size is 10 MB.'
+            : err.message || 'Image upload failed',
         });
       }
       next();
