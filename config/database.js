@@ -1,40 +1,40 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize } = require("sequelize");
 
-// Database configuration
+// Database configuration - all values come from .env
 const sequelize = new Sequelize(
-  process.env.PGDATABASE || 'sdl_db',
-  process.env.PGUSER || 'postgres',
-  process.env.PGPASSWORD || 'password',
+  process.env.PGDATABASE,
+  process.env.PGUSER,
+  process.env.PGPASSWORD,
   {
-    host: process.env.PGHOST || 'db',
+    host: process.env.PGHOST,
     port: process.env.PGPORT || 5432,
-    dialect: 'postgres',
+    dialect: "postgres",
     logging: false,
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
     },
     define: {
       timestamps: true,
       underscored: false,
-      freezeTableName: true
-    }
-  }
+      freezeTableName: true,
+    },
+  },
 );
 
 // Test database connection
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('📦 PostgreSQL Connected Successfully!');
-    
+    console.log("📦 PostgreSQL Connected Successfully!");
+
     // Create tables if missing; alter schema only in development
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('🔄 Database synchronized');
+    await sequelize.sync({ alter: process.env.NODE_ENV === "development" });
+    console.log("🔄 Database synchronized");
   } catch (error) {
-    console.error('❌ Database connection error:', error.message);
+    console.error("❌ Database connection error:", error.message);
     process.exit(1);
   }
 };
