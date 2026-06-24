@@ -6,13 +6,11 @@ const { Op } = require('sequelize');
 // @access  Public
 const getAllProjects = async (req, res) => {
   try {
-    const { category, type, featured, limit = 12, page = 1 } = req.query;
+    const { category, type, limit = 12, page = 1 } = req.query;
     
-    const where = { isPublic: true };
-    
+    const where = { isPublic: true, featured: true };
     if (category) where.category = category;
     if (type) where.type = type;
-    if (featured === 'true') where.featured = true;
     
     const offset = (page - 1) * limit;
     
@@ -46,12 +44,14 @@ const getAllProjects = async (req, res) => {
 // @access  Public
 const getFeaturedProjects = async (req, res) => {
   try {
+    const { limit = 50 } = req.query;
+
     const projects = await Project.findAll({
       where: { 
         isPublic: true, 
         featured: true 
       },
-      limit: 6,
+      limit: parseInt(limit, 10),
       order: [['createdAt', 'DESC']],
       attributes: { exclude: ['updatedAt'] }
     });
@@ -86,6 +86,7 @@ const searchProjects = async (req, res) => {
     
     const where = { 
       isPublic: true,
+      featured: true,
       [Op.or]: [
         { title: { [Op.iLike]: `%${q}%` } },
         { description: { [Op.iLike]: `%${q}%` } },
@@ -126,7 +127,8 @@ const getProjectById = async (req, res) => {
     const project = await Project.findOne({
       where: { 
         id: req.params.id,
-        isPublic: true 
+        isPublic: true,
+        featured: true,
       },
       attributes: { exclude: ['updatedAt'] }
     });
@@ -156,15 +158,17 @@ const getProjectById = async (req, res) => {
 // @access  Public
 const getProjectCategories = async (req, res) => {
   try {
+    const publicWhere = { isPublic: true, featured: true };
+
     const categories = await Project.findAll({
-      where: { isPublic: true },
+      where: publicWhere,
       attributes: ['category'],
       group: ['category'],
       raw: true
     });
     
     const types = await Project.findAll({
-      where: { isPublic: true },
+      where: publicWhere,
       attributes: ['type'],
       group: ['type'],
       raw: true
@@ -172,7 +176,7 @@ const getProjectCategories = async (req, res) => {
     
     const tags = await Project.findAll({
       where: { 
-        isPublic: true,
+        ...publicWhere,
         tags: { [Op.ne]: null }
       },
       attributes: ['tags'],
