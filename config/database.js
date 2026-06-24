@@ -6,7 +6,7 @@ const sequelize = new Sequelize(
   process.env.PGUSER || 'postgres',
   process.env.PGPASSWORD || 'password',
   {
-    host: process.env.PGHOST || 'localhost',
+    host: process.env.PGHOST || 'db',
     port: process.env.PGPORT || 5432,
     dialect: 'postgres',
     logging: false,
