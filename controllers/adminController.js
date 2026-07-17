@@ -721,6 +721,95 @@ const createTestimonial = async (req, res) => {
   }
 };
 
+// @desc    Update testimonial (approve / publish / feature / edit)
+// @route   PUT /api/admin/testimonials/:id
+// @access  Private (Admin)
+const updateTestimonial = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findByPk(req.params.id);
+
+    if (!testimonial) {
+      return res.status(404).json({
+        success: false,
+        message: "Testimonial not found",
+      });
+    }
+
+    const allowed = [
+      "name",
+      "title",
+      "company",
+      "project",
+      "review",
+      "rating",
+      "avatarUrl",
+      "featured",
+      "verified",
+      "isPublic",
+    ];
+    const updates = {};
+    allowed.forEach((key) => {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    });
+
+    await testimonial.update(updates);
+
+    res.json({
+      success: true,
+      message: "Testimonial updated successfully",
+      data: testimonial,
+    });
+  } catch (error) {
+    console.error("Error updating testimonial:", error);
+
+    if (error.name === "SequelizeValidationError") {
+      const validationErrors = error.errors
+        .map((err) => err.message)
+        .join(", ");
+      return res.status(400).json({
+        success: false,
+        message: "Validation error: " + validationErrors,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error updating testimonial",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete testimonial
+// @route   DELETE /api/admin/testimonials/:id
+// @access  Private (Admin)
+const deleteTestimonial = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findByPk(req.params.id);
+
+    if (!testimonial) {
+      return res.status(404).json({
+        success: false,
+        message: "Testimonial not found",
+      });
+    }
+
+    await testimonial.destroy();
+
+    res.json({
+      success: true,
+      message: "Testimonial deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting testimonial:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting testimonial",
+      error: error.message,
+    });
+  }
+};
+
 // @desc    Create new contact
 // @route   POST /api/admin/contacts
 // @access  Private (Admin)
@@ -832,6 +921,8 @@ module.exports = {
   deleteProject,
   getTestimonials,
   createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
   getSystemStats,
   uploadProjectImage,
 };

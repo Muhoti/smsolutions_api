@@ -136,6 +136,67 @@ const createTestimonial = async (req, res) => {
   }
 };
 
+// @desc    Submit a testimonial from a public client review link
+// @route   POST /api/testimonials/submit
+// @access  Public
+const submitTestimonial = async (req, res) => {
+  try {
+    const { name, title, company, project, review, rating } = req.body;
+
+    if (!name || !review) {
+      return res.status(400).json({
+        success: false,
+        message: 'Your name and review are required'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'A photo of yourself is required'
+      });
+    }
+
+    const parsedRating = parseInt(rating, 10);
+    const safeRating = Number.isInteger(parsedRating)
+      ? Math.min(Math.max(parsedRating, 1), 5)
+      : 5;
+
+    // Client submissions are held for admin approval — not public until verified.
+    const testimonial = await Testimonial.create({
+      name,
+      title: title || null,
+      company: company || null,
+      project: project || null,
+      review,
+      rating: safeRating,
+      avatarUrl: `/api/uploads/testimonials/${req.file.filename}`,
+      featured: false,
+      isPublic: false,
+      verified: false
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Thank you! Your review has been submitted and will appear once approved.',
+      data: { id: testimonial.id }
+    });
+  } catch (error) {
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map((err) => err.message).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error: ' + validationErrors
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Error submitting testimonial',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Update testimonial
 // @route   PUT /api/testimonials/:id
 // @access  Private (Admin)
@@ -308,6 +369,7 @@ module.exports = {
   getAllTestimonials,
   getFeaturedTestimonials,
   getTestimonialById,
+  submitTestimonial,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,

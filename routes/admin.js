@@ -11,6 +11,8 @@ const {
   deleteProject,
   getTestimonials,
   createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
   getSystemStats,
   uploadProjectImage,
 } = require('../controllers/adminController');
@@ -84,6 +86,16 @@ router.get('/testimonials', getTestimonials);
 // @desc    Create new testimonial
 // @access  Private (Admin)
 router.post('/testimonials', createTestimonial);
+
+// @route   PUT /api/admin/testimonials/:id
+// @desc    Update / approve / publish testimonial
+// @access  Private (Admin)
+router.put('/testimonials/:id', updateTestimonial);
+
+// @route   DELETE /api/admin/testimonials/:id
+// @desc    Delete testimonial
+// @access  Private (Admin)
+router.delete('/testimonials/:id', deleteTestimonial);
 
 // @route   GET /api/admin/stats
 // @desc    Get system statistics

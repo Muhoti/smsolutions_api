@@ -6,22 +6,25 @@ const fs = require("fs");
 const uploadsBase =
   process.env.UPLOAD_PATH || path.join(__dirname, "..", "uploads");
 const projectsDir = path.join(uploadsBase, "projects");
-try {
-  fs.mkdirSync(projectsDir, { recursive: true });
-} catch (err) {
-  console.error(
-    "Warning: could not create uploads directory:",
-    projectsDir,
-    err.message,
-  );
-}
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, projectsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
-  },
+const testimonialsDir = path.join(uploadsBase, "testimonials");
+[projectsDir, testimonialsDir].forEach((dir) => {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    console.error("Warning: could not create uploads directory:", dir, err.message);
+  }
 });
+
+const makeStorage = (dir) =>
+  multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, dir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+    },
+  });
+
+const storage = makeStorage(projectsDir);
 
 const imageFilter = (_req, file, cb) => {
   const allowedExt = /\.(jpe?g|png|gif|webp)$/i;
@@ -39,4 +42,10 @@ const projectImageUpload = multer({
   fileFilter: imageFilter,
 });
 
-module.exports = { projectImageUpload };
+const testimonialImageUpload = multer({
+  storage: makeStorage(testimonialsDir),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: imageFilter,
+});
+
+module.exports = { projectImageUpload, testimonialImageUpload };
